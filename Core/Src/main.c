@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "log.h"
+#include "nrf24l01.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -69,6 +70,15 @@ void pc13_blink(uint32_t cnt)
     HAL_Delay(200);
   }
   HAL_Delay(2000);
+}
+nrf24l01 nrf_dev;
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  LOG("tigger external interrupt here, gpio_pin:%u", GPIO_Pin);
+  if (GPIO_Pin == GPIO_PIN_4)
+  {
+    nrf_irq_handler(&nrf_dev);
+  }
 }
 /* USER CODE END 0 */
 
