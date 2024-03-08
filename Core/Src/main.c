@@ -54,7 +54,17 @@ static void MX_GPIO_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void pc13_blink(uint32_t cnt)
+{
+  for (uint32_t i = 0; i < cnt; i++)
+  {
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+    HAL_Delay(300);
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+    HAL_Delay(200);
+  }
+  HAL_Delay(2000);
+}
 /* USER CODE END 0 */
 
 /**
@@ -94,8 +104,8 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
     /* USER CODE BEGIN 3 */
+    pc13_blink(4);
   }
   /* USER CODE END 3 */
 }
