@@ -554,6 +554,19 @@ NRF_RESULT nrf_send_packet_noack(nrf24l01* dev, const uint8_t* data) {
     return dev->tx_result;
 }
 
+const uint8_t* nrf_try_receive_packet(nrf24l01 *dev) {
+    if (dev->rx_busy) {
+        return NULL;
+    }
+    uint8_t *res = dev->config.rx_buffer;
+    dev->rx_busy = 1;
+
+    ce_reset(dev);
+    nrf_rx_tx_control(dev, NRF_STATE_RX);
+    ce_set(dev);
+    return res;
+}
+
 const uint8_t* nrf_receive_packet(nrf24l01* dev) {
 
     dev->rx_busy = 1;

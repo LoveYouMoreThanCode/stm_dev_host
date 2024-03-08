@@ -144,6 +144,7 @@ void nrf_packet_received_callback(nrf24l01* dev, uint8_t* data);
  * Blocks until the data has arrived, then returns a pointer to received data.
  * Please note, once nrf_packet_received_callback routine is overridden, this
  * one will stop working. */
+const uint8_t* nrf_try_receive_packet(nrf24l01 *dev);
 const uint8_t* nrf_receive_packet(nrf24l01* dev);
 
 /* Blocking Data Sending

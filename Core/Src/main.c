@@ -71,6 +71,13 @@ void pc13_blink(uint32_t cnt)
   }
   HAL_Delay(2000);
 }
+static void error()
+{
+  while (true)
+  {
+    pc13_blink(3);
+  }
+}
 nrf24l01 nrf_dev;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
@@ -114,6 +121,32 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
 
+  const uint8_t rx_address[5] = {1, 2, 3, 4, 5};
+  const uint8_t tx_address[5] = {5, 4, 3, 2, 1};
+
+  uint32_t rx_data;
+  nrf24l01_config config;
+  config.data_rate = NRF_DATA_RATE_1MBPS;
+  config.tx_power = NRF_TX_PWR_0dBm;
+  config.crc_width = NRF_CRC_WIDTH_1B;
+  config.addr_width = NRF_ADDR_WIDTH_5;
+  config.payload_length = 4;      // maximum is 32 bytes
+  config.retransmit_count = 15;   // maximum is 15 times
+  config.retransmit_delay = 0x0F; // 4000us, LSB:250us
+  config.rf_channel = 0;
+  config.rx_address = rx_address;
+  config.tx_address = tx_address;
+  config.rx_buffer = (uint8_t *)&rx_data;
+
+  config.spi = &hspi1;
+  config.spi_timeout = 10; // milliseconds
+  config.ce_port = GPIOA;
+  config.ce_pin = GPIO_PIN_3;
+  config.irq_port = GPIOA;
+  config.irq_pin = GPIO_PIN_4;
+
+  nrf_init(&nrf_dev, &config);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -124,8 +157,15 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    pc13_blink(4);
+    pc13_blink(10);
     LOG("hello, I'm %s!!! counter=%lu", "fanwei", count++);
+    
+    //send something
+    uint32_t tx_data = 0xDEADBEEF;
+    nrf_send_packet_noack(&nrf_dev, (uint8_t *)&tx_data);
+
+    nrf_receive_packet(&nrf_dev);
+    LOG("got data:%lu", rx_data);
   }
   /* USER CODE END 3 */
 }
