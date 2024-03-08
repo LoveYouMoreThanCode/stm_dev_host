@@ -1,5 +1,8 @@
 #include "log.h"
+#include "stm32f1xx_hal.h"
 /*# 7- Retarget printf to UART (std library and toolchain dependent) #########*/
+
+extern UART_HandleTypeDef huart1;
 
 #if defined(__GNUC__)
 int _write(int fd, char * ptr, int len)
