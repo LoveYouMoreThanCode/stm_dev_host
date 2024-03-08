@@ -1,4 +1,5 @@
 #include "nrf24l01.h"
+#include "log.h"
 
 static void ce_set(nrf24l01* dev) {
     HAL_GPIO_WritePin(dev->config.ce_port, dev->config.ce_pin, GPIO_PIN_SET);
@@ -27,8 +28,11 @@ NRF_RESULT nrf_init(nrf24l01* dev, nrf24l01_config* config) {
 
     uint8_t config_reg = 0;
 
+    uint32_t tmp_cnt = 0;
     while ((config_reg & 2) == 0) { // wait for powerup
         nrf_read_register(dev, NRF_CONFIG, &config_reg);
+        HAL_Delay(1000);
+        LOG("wait nrf powerup, times=%lu", ++tmp_cnt);
     }
 
     nrf_set_rx_payload_width_p0(dev, dev->config.payload_length);
