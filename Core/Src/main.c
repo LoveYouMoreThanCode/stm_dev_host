@@ -124,7 +124,7 @@ int main(void)
   const uint8_t rx_address[5] = {1, 2, 3, 4, 5};
   const uint8_t tx_address[5] = {5, 4, 3, 2, 1};
 
-  uint32_t rx_data;
+  uint32_t rx_data = 0;
   nrf24l01_config config;
   config.data_rate = NRF_DATA_RATE_1MBPS;
   config.tx_power = NRF_TX_PWR_0dBm;
@@ -152,6 +152,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   uint32_t count = 0;
+  uint32_t tx_data = 1000;
   while (1)
   {
     /* USER CODE END WHILE */
@@ -161,8 +162,8 @@ int main(void)
     LOG("hello, I'm %s!!! counter=%lu", "fanwei", count++);
     
     //send something
-    uint32_t tx_data = 0xDEADBEEF;
     nrf_send_packet_noack(&nrf_dev, (uint8_t *)&tx_data);
+    tx_data++;
 
     nrf_receive_packet(&nrf_dev);
     LOG("got data:%lu", rx_data);
