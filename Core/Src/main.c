@@ -145,7 +145,14 @@ int main(void)
   config.irq_port = GPIOA;
   config.irq_pin = GPIO_PIN_4;
 
-  nrf_init(&nrf_dev, &config);
+  LOG("start to init nrf");
+  NRF_RESULT rc = nrf_init(&nrf_dev, &config);
+  if (rc != NRF_OK) {
+    LOG("init nrf failed, error:%d", rc);
+    error();
+    return 0;
+  }
+  LOG("finish init nrf");
 
   /* USER CODE END 2 */
 

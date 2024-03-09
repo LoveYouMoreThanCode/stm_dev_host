@@ -10,56 +10,91 @@ static void ce_reset(nrf24l01* dev) {
 }
 
 static void csn_set(nrf24l01* dev) {
-    HAL_GPIO_WritePin(dev->config.csn_port, dev->config.csn_pin, GPIO_PIN_SET);
+    //mixed rx and tx mode, enable always
+    //HAL_GPIO_WritePin(dev->config.csn_port, dev->config.csn_pin, GPIO_PIN_SET);
 }
 
 static void csn_reset(nrf24l01* dev) {
-    HAL_GPIO_WritePin(dev->config.csn_port, dev->config.csn_pin,
-                      GPIO_PIN_RESET);
+    //mixed rx and tx mode, enable always
+    //HAL_GPIO_WritePin(dev->config.csn_port, dev->config.csn_pin,
+    //                  GPIO_PIN_RESET);
 }
+
+#define RETURN_IF_ERROR(rc)                          \
+    do                                               \
+    {                                                \
+        if (rc != NRF_OK)                            \
+        {                                            \
+            LOG("error happened here!!! rc:%d", rc); \
+            return rc;                               \
+        }                                            \
+    } while (0)
 
 NRF_RESULT nrf_init(nrf24l01* dev, nrf24l01_config* config) {
     dev->config = *config;
 
+    LOG("start reset ce and csn");
     ce_reset(dev);
     csn_reset(dev);
+    LOG("finish reset ce and csn");
 
-    nrf_power_up(dev, true);
+    NRF_RESULT rc = NRF_OK;
+    LOG("start to power up");
+    rc = nrf_power_up(dev, true);
+    LOG("finish power up, rc:%d", rc);
+    RETURN_IF_ERROR(rc);
 
     uint8_t config_reg = 0;
 
     uint32_t tmp_cnt = 0;
     while ((config_reg & 2) == 0) { // wait for powerup
-        nrf_read_register(dev, NRF_CONFIG, &config_reg);
+        rc = nrf_read_register(dev, NRF_CONFIG, &config_reg);
         HAL_Delay(1000);
-        LOG("wait nrf powerup, times=%lu", ++tmp_cnt);
+        LOG("wait nrf powerup, times=%lu, rc:%d", ++tmp_cnt, rc);
+        RETURN_IF_ERROR(rc);
     }
+    LOG("wait powerup finished");
 
-    nrf_set_rx_payload_width_p0(dev, dev->config.payload_length);
-    nrf_set_rx_payload_width_p1(dev, dev->config.payload_length);
-
-    nrf_set_rx_address_p1(dev, dev->config.rx_address);
-    nrf_set_rx_address_p0(dev, dev->config.tx_address);
-    nrf_set_tx_address(dev, dev->config.tx_address);
-    nrf_enable_rx_data_ready_irq(dev, 1);
-    nrf_enable_tx_data_sent_irq(dev, 1);
-    nrf_enable_max_retransmit_irq(dev, 1);
-    nrf_enable_crc(dev, 1);
-    nrf_set_crc_width(dev, dev->config.crc_width);
-    nrf_set_address_width(dev, dev->config.addr_width);
-    nrf_set_rf_channel(dev, dev->config.rf_channel);
-    nrf_set_data_rate(dev, dev->config.data_rate);
-    nrf_set_retransmittion_count(dev, dev->config.retransmit_count);
-    nrf_set_retransmittion_delay(dev, dev->config.retransmit_delay);
-
-    nrf_set_rx_pipes(dev, 0x03);
-    nrf_enable_auto_ack(dev, 0);
-
-    nrf_clear_interrupts(dev);
-
-    nrf_rx_tx_control(dev, NRF_STATE_RX);
-
-    nrf_flush_rx(dev);
+    rc = nrf_set_rx_payload_width_p0(dev, dev->config.payload_length);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_set_rx_payload_width_p1(dev, dev->config.payload_length);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_set_rx_address_p1(dev, dev->config.rx_address);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_set_rx_address_p0(dev, dev->config.tx_address);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_set_tx_address(dev, dev->config.tx_address);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_enable_rx_data_ready_irq(dev, 1);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_enable_tx_data_sent_irq(dev, 1);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_enable_max_retransmit_irq(dev, 1);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_enable_crc(dev, 1);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_set_crc_width(dev, dev->config.crc_width);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_set_address_width(dev, dev->config.addr_width);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_set_rf_channel(dev, dev->config.rf_channel);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_set_data_rate(dev, dev->config.data_rate);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_set_retransmittion_count(dev, dev->config.retransmit_count);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_set_retransmittion_delay(dev, dev->config.retransmit_delay);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_set_rx_pipes(dev, 0x03);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_enable_auto_ack(dev, 0);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_clear_interrupts(dev);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_rx_tx_control(dev, NRF_STATE_RX);
+    RETURN_IF_ERROR(rc);
+    rc = nrf_flush_rx(dev);
+    RETURN_IF_ERROR(rc);
     ce_set(dev);
 
     return NRF_OK;
