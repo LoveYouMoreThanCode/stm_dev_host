@@ -41,6 +41,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
+
 SPI_HandleTypeDef hspi1;
 
 UART_HandleTypeDef huart1;
@@ -52,8 +55,10 @@ UART_HandleTypeDef huart1;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -70,13 +75,6 @@ void pc13_blink(uint32_t cnt)
     HAL_Delay(200);
   }
   HAL_Delay(2000);
-}
-static void error()
-{
-  while (true)
-  {
-    pc13_blink(3);
-  }
 }
 nrf24l01 nrf_dev;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
@@ -117,12 +115,14 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_SPI1_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-
-  const uint8_t rx_address[5] = {1, 2, 3, 4, 5};
-  const uint8_t tx_address[5] = {5, 4, 3, 2, 1};
+#if 0
+  const uint8_t tx_address[5] = {1, 2, 3, 4, 5};
+  const uint8_t rx_address[5] = {5, 4, 3, 2, 1};
 
   uint32_t rx_data = 0;
   nrf24l01_config config;
@@ -155,6 +155,7 @@ int main(void)
     return 0;
   }
   LOG("finish init nrf");
+#endif
 
   /* USER CODE END 2 */
 
@@ -162,14 +163,32 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   uint32_t count = 0;
   uint32_t tx_data = 1000;
+  uint32_t nr_sampled_value = 16;
+  #define NR_SAMPLED_VALUE 16
+  uint16_t sampled_values[NR_SAMPLED_VALUE];
+  memset(sampled_values, 0, sizeof(uint16_t) * NR_SAMPLED_VALUE);
+  LOG("start adc dma");
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&sampled_values,NR_SAMPLED_VALUE);
+  LOG("done adc dma");
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&sampled_values,NR_SAMPLED_VALUE*2);
     pc13_blink(2);
-    LOG("hello, I'm %s!!! counter=%lu", "fanwei", count++);
-    
+    uint32_t avg_0 = 0;
+    uint32_t avg_1 = 0;
+    for (uint32_t i = 0; i < NR_SAMPLED_VALUE; )
+    {
+      avg_0 += sampled_values[i];
+      i++;
+      avg_1 += sampled_values[i];
+      i++;
+    }
+    LOG("adc value1:%lu value2:%lu", avg_0 / NR_SAMPLED_VALUE / 2, avg_1 / NR_SAMPLED_VALUE / 2);
+
+#if 0
     //send something
     LOG("start send packet noack");
     nrf_send_packet_noack(&nrf_dev, (uint8_t *)&tx_data);
@@ -183,6 +202,7 @@ int main(void)
     }else {
       LOG("no data, try receive next round");
     }
+    #endif
   }
   /* USER CODE END 3 */
 }
@@ -195,6 +215,7 @@ void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
@@ -223,6 +244,65 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC;
+  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV8;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+  /** Common config
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 2;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Regular Channel
+  */
+  sConfig.Channel = ADC_CHANNEL_1;
+  sConfig.Rank = ADC_REGULAR_RANK_2;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -293,6 +373,22 @@ static void MX_USART1_UART_Init(void)
   /* USER CODE BEGIN USART1_Init 2 */
 
   /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
 
 }
 
