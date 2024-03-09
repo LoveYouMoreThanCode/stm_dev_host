@@ -22,6 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <string.h>
 #include "log.h"
 #include "nrf24l01.h"
 /* USER CODE END Includes */
@@ -85,7 +86,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     nrf_irq_handler(&nrf_dev);
   }
 }
-char *get_stick_directions()
+int get_stick_directions()
 {
 #define NR_SAMPLED_VALUE 16
   static uint16_t sampled_values[NR_SAMPLED_VALUE];
@@ -107,12 +108,6 @@ char *get_stick_directions()
   }
   x = x / NR_SAMPLED_VALUE / 2;
   y = y / NR_SAMPLED_VALUE / 2;
-  LOG("adc x:%lu y:%lu", x, y);
-  char *directions[3][3] = {
-      {"left_up", "up", "right_up"},
-      {"left", "stop", "right"},
-      {"left_down", "down", "right_down"},
-  };
   int changed_x = 1;
   int changed_y = 1;
   if (x < 750 - 200)
@@ -131,7 +126,8 @@ char *get_stick_directions()
   {
     changed_y += 1;
   }
-  return directions[changed_x][changed_y];
+  LOG("adc x:%lu y:%lu --> %d", x, y, changed_x * 3 + changed_y);
+  return changed_x * 3 + changed_y;
 }
 
 /* USER CODE END 0 */
@@ -169,7 +165,6 @@ int main(void)
   MX_SPI1_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-#if 0
   const uint8_t tx_address[5] = {1, 2, 3, 4, 5};
   const uint8_t rx_address[5] = {5, 4, 3, 2, 1};
 
@@ -198,37 +193,35 @@ int main(void)
 
   LOG("start to init nrf");
   NRF_RESULT rc = nrf_init(&nrf_dev, &config);
-  if (rc != NRF_OK) {
+  if (rc != NRF_OK)
+  {
     LOG("init nrf failed, error:%d", rc);
-    error();
+    while (1)
+    {
+      pc13_blink(4);
+    }
     return 0;
   }
   LOG("finish init nrf");
-#endif
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint32_t count = 0;
-  uint32_t tx_data = 1000;
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    //HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&sampled_values,NR_SAMPLED_VALUE*2);
-    //pc13_blink(2);
-    char *direction = get_stick_directions();
-    LOG("current directions is :%s", direction);
-    HAL_Delay(100);
+    HAL_Delay(1000);
+    int direction = get_stick_directions();
+    LOG("current directions is :%d", direction);
 
-#if 0
     //send something
-    LOG("start send packet noack");
+    uint32_t tx_data = 1000 + direction;
+    LOG("start send packet noack, tx_data:%lu",tx_data);
     nrf_send_packet_noack(&nrf_dev, (uint8_t *)&tx_data);
     LOG("finish send packet noack");
-    tx_data++;
 
     LOG("start receive packet");
     const uint8_t *tmp_data = nrf_try_receive_packet(&nrf_dev);
@@ -237,7 +230,6 @@ int main(void)
     }else {
       LOG("no data, try receive next round");
     }
-    #endif
   }
   /* USER CODE END 3 */
 }
