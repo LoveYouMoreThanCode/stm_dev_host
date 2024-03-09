@@ -11,13 +11,13 @@ static void ce_reset(nrf24l01* dev) {
 
 static void csn_set(nrf24l01* dev) {
     //mixed rx and tx mode, enable always
-    //HAL_GPIO_WritePin(dev->config.csn_port, dev->config.csn_pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(dev->config.csn_port, dev->config.csn_pin, GPIO_PIN_SET);
 }
 
 static void csn_reset(nrf24l01* dev) {
     //mixed rx and tx mode, enable always
-    //HAL_GPIO_WritePin(dev->config.csn_port, dev->config.csn_pin,
-    //                  GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(dev->config.csn_port, dev->config.csn_pin,
+                      GPIO_PIN_RESET);
 }
 
 #define RETURN_IF_ERROR(rc)                          \

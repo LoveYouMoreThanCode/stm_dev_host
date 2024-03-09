@@ -60,6 +60,8 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define SYS_LED_Pin GPIO_PIN_13
 #define SYS_LED_GPIO_Port GPIOC
+#define CSN_Pin GPIO_PIN_3
+#define CSN_GPIO_Port GPIOA
 #define CE_Pin GPIO_PIN_4
 #define CE_GPIO_Port GPIOA
 #define IRQ_Pin GPIO_PIN_0

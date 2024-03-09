@@ -81,8 +81,8 @@ static void error()
 nrf24l01 nrf_dev;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  LOG("tigger external interrupt here, gpio_pin:%u", GPIO_Pin);
-  if (GPIO_Pin == GPIO_PIN_4)
+  LOG("tigger external interrupt here, gpio_pin:%u irq_pin:%u", GPIO_Pin, IRQ_Pin);
+  if (GPIO_Pin == IRQ_Pin)
   {
     nrf_irq_handler(&nrf_dev);
   }
@@ -144,6 +144,8 @@ int main(void)
   config.ce_pin = CE_Pin;
   config.irq_port = IRQ_GPIO_Port;
   config.irq_pin = IRQ_Pin;
+  config.csn_port = CSN_GPIO_Port;
+  config.csn_pin = CSN_Pin;
 
   LOG("start to init nrf");
   NRF_RESULT rc = nrf_init(&nrf_dev, &config);
@@ -165,15 +167,22 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    pc13_blink(10);
+    pc13_blink(2);
     LOG("hello, I'm %s!!! counter=%lu", "fanwei", count++);
     
     //send something
+    LOG("start send packet noack");
     nrf_send_packet_noack(&nrf_dev, (uint8_t *)&tx_data);
+    LOG("finish send packet noack");
     tx_data++;
 
-    nrf_receive_packet(&nrf_dev);
-    LOG("got data:%lu", rx_data);
+    LOG("start receive packet");
+    const uint8_t *tmp_data = nrf_try_receive_packet(&nrf_dev);
+    if (tmp_data) {
+      LOG("got data:%lu", *(uint32_t*)tmp_data);
+    }else {
+      LOG("no data, try receive next round");
+    }
   }
   /* USER CODE END 3 */
 }
@@ -306,6 +315,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(SYS_LED_GPIO_Port, SYS_LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(CSN_GPIO_Port, CSN_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(CE_GPIO_Port, CE_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : SYS_LED_Pin */
@@ -314,6 +326,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(SYS_LED_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : CSN_Pin */
+  GPIO_InitStruct.Pin = CSN_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(CSN_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : CE_Pin */
   GPIO_InitStruct.Pin = CE_Pin;
