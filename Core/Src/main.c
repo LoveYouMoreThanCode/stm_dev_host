@@ -85,6 +85,55 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
     nrf_irq_handler(&nrf_dev);
   }
 }
+char *get_stick_directions()
+{
+#define NR_SAMPLED_VALUE 16
+  static uint16_t sampled_values[NR_SAMPLED_VALUE];
+  static bool started = 0;
+  if (!started)
+  {
+    started = 1;
+    memset(sampled_values, 0, sizeof(uint16_t) * NR_SAMPLED_VALUE);
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&sampled_values, NR_SAMPLED_VALUE);
+  }
+  uint32_t x = 0;
+  uint32_t y = 0;
+  for (uint32_t i = 0; i < NR_SAMPLED_VALUE;)
+  {
+    x += sampled_values[i];
+    i++;
+    y += sampled_values[i];
+    i++;
+  }
+  x = x / NR_SAMPLED_VALUE / 2;
+  y = y / NR_SAMPLED_VALUE / 2;
+  LOG("adc x:%lu y:%lu", x, y);
+  char *directions[3][3] = {
+      {"left_up", "up", "right_up"},
+      {"left", "stop", "right"},
+      {"left_down", "down", "right_down"},
+  };
+  int changed_x = 1;
+  int changed_y = 1;
+  if (x < 750 - 200)
+  {
+    changed_x -= 1;
+  }
+  else if (x > 750 + 200)
+  {
+    changed_x += 1;
+  }
+  if (y < 750 - 200)
+  {
+    changed_y -= 1;
+  }
+  else if (y > 750 + 200)
+  {
+    changed_y += 1;
+  }
+  return directions[changed_x][changed_y];
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -163,30 +212,16 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   uint32_t count = 0;
   uint32_t tx_data = 1000;
-  uint32_t nr_sampled_value = 16;
-  #define NR_SAMPLED_VALUE 16
-  uint16_t sampled_values[NR_SAMPLED_VALUE];
-  memset(sampled_values, 0, sizeof(uint16_t) * NR_SAMPLED_VALUE);
-  LOG("start adc dma");
-  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&sampled_values,NR_SAMPLED_VALUE);
-  LOG("done adc dma");
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&sampled_values,NR_SAMPLED_VALUE*2);
-    pc13_blink(2);
-    uint32_t avg_0 = 0;
-    uint32_t avg_1 = 0;
-    for (uint32_t i = 0; i < NR_SAMPLED_VALUE; )
-    {
-      avg_0 += sampled_values[i];
-      i++;
-      avg_1 += sampled_values[i];
-      i++;
-    }
-    LOG("adc value1:%lu value2:%lu", avg_0 / NR_SAMPLED_VALUE / 2, avg_1 / NR_SAMPLED_VALUE / 2);
+    //HAL_ADC_Start_DMA(&hadc1, (uint32_t*)&sampled_values,NR_SAMPLED_VALUE*2);
+    //pc13_blink(2);
+    char *direction = get_stick_directions();
+    LOG("current directions is :%s", direction);
+    HAL_Delay(100);
 
 #if 0
     //send something
