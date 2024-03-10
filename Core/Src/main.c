@@ -25,6 +25,7 @@
 #include <string.h>
 #include "log.h"
 #include "nrf24l01.h"
+#include "car.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -100,7 +101,7 @@ int get_stick_directions()
   {
     started = 1;
     memset(sampled_values, 0, sizeof(uint16_t) * NR_SAMPLED_VALUE);
-    HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&sampled_values, NR_SAMPLED_VALUE);
+    HAL_ADC_Start_DMA(&hadc1, (uint32_t *)&sampled_values, (uint32_t)NR_SAMPLED_VALUE);
   }
   uint32_t x = 0;
   uint32_t y = 0;
@@ -211,6 +212,35 @@ int main(void)
   }
   LOG("finish init nrf");
 
+  CarTypeDef my_car;
+  MotorTypeDef m1 =
+      {
+          .timer_1 = &htim2,
+          .channel_1 = TIM_CHANNEL_1,
+          .timer_2 = &htim2,
+          .channel_2 = TIM_CHANNEL_2,
+      };
+  MotorTypeDef m2 = {
+      .timer_1 = &htim2,
+      .channel_1 = TIM_CHANNEL_3,
+      .timer_2 = &htim2,
+      .channel_2 = TIM_CHANNEL_4,
+  };
+  MotorTypeDef m3 = {
+      .timer_1 = &htim4,
+      .channel_1 = TIM_CHANNEL_1,
+      .timer_2 = &htim4,
+      .channel_2 = TIM_CHANNEL_2,
+  };
+  MotorTypeDef m4 = {
+      .timer_1 = &htim2,
+      .channel_1 = TIM_CHANNEL_3,
+      .timer_2 = &htim2,
+      .channel_2 = TIM_CHANNEL_4,
+  };
+  Car_Init(&my_car, m1, m2, m3, m4);
+  uint32_t nop_cnt = 0;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -221,21 +251,23 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
     HAL_Delay(1000);
-    int direction = get_stick_directions();
-    LOG("current directions is :%d", direction);
-
-    //send something
-    uint32_t tx_data = 1000 + direction;
-    LOG("start send packet noack, tx_data:%lu",tx_data);
-    nrf_send_packet_noack(&nrf_dev, (uint8_t *)&tx_data);
-    LOG("finish send packet noack");
-
+    
     LOG("start receive packet");
     const uint8_t *tmp_data = nrf_try_receive_packet(&nrf_dev);
-    if (tmp_data) {
+    uint32_t cmd = CAR_CMD_END;
+    if (tmp_data != NULL) {
+      cmd = *(uint32_t *)tmp_data;
+    }
+    if (cmd != CAR_CMD_END) {
+      nop_cnt = 0;
       LOG("got data:%lu", *(uint32_t*)tmp_data);
+      Car_Move(&my_car, cmd);
     }else {
-      LOG("no data, try receive next round");
+      nop_cnt += 1;
+      LOG("no data, try receive next round, no_cnt:%lu", nop_cnt);
+      if (nop_cnt > 3) {
+        Car_Move(&my_car,CAR_CMD_STOP);
+      }
     }
   }
   /* USER CODE END 3 */

@@ -3,9 +3,23 @@
 
 #include "stm32f1xx_hal.h"
 
-#ifndef uint32_t
-#define uint32_t unsigned int
-#endif
+//#ifndef uint32_t
+//#define uint32_t unsigned int
+//#endif
+
+enum CAR_CMD
+{
+    CAR_CMD_LEFT_FORWARD = 1000,
+    CAR_CMD_FORWARD = 1001,
+    CAR_CMD_RIGHT_FORWARD = 1002,
+    CAR_CMD_LEFT = 1003,
+    CAR_CMD_STOP = 1004,
+    CAR_CMD_RIGHT = 1005,
+    CAR_CMD_LEFT_BACKWARD = 1006,
+    CAR_CMD_BACKWARD = 1007,
+    CAR_CMD_RIGHT_BACKWARD = 1008,
+    CAR_CMD_END = 1009,
+};
 
 #define MAX_TIMR_COUNT 10240
 typedef struct Motor

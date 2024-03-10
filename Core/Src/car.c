@@ -34,18 +34,6 @@ void Car_Init(CarTypeDef *car,MotorTypeDef m1,MotorTypeDef m2,MotorTypeDef m3,Mo
     Motor_Init(&car->right_rear, m4.timer_1, m4.channel_1, m4.timer_2, m4.channel_2);
 }
 
-enum CAR_CMD
-{
-    CAR_CMD_LEFT_FORWARD = 1000,
-    CAR_CMD_FORWARD = 1001,
-    CAR_CMD_RIGHT_FORWARD = 1002,
-    CAR_CMD_LEFT = 1003,
-    CAR_CMD_STOP = 1004,
-    CAR_CMD_RIGHT = 1005,
-    CAR_CMD_LEFT_BACKWARD = 1006,
-    CAR_CMD_BACKWARD = 1007,
-    CAR_CMD_RIGHT_BACKWARD = 1008,
-};
 void Car_Move(CarTypeDef *car, uint32_t cmd)
 {
     switch (cmd)
